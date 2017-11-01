@@ -1,5 +1,5 @@
 
-#Get current date and creats a usernamesuffix
+#Plockar fram datum och sakapar användarnamnssuffix
 $Month = get-date | select -ExpandProperty Month
 $Year = (Get-Date | Select-Object -ExpandProperty Year).ToString().Substring(2)
 If (($Month -lt 6) -or ($Month -eq 12)) {
@@ -9,27 +9,27 @@ If (($Month -lt 6) -or ($Month -eq 12)) {
       $UserSuf = ('HK' + $Year)
   }
 
-#Import user data from a defined database
+#Importerar användare från given databas
 $Users = Invoke-Sqlcmd -Query "SELECT * FROM -Database- # " -ServerInstance "localhost\SQLExpress"
 
-#Creats a username for each user in database based on first and lastname
-#Also check each usernames availability in ActiveDirectory
+#Skapar användarnamn baserat på för och efternamn samt kör en kontroll mot AD
+
 
 Foreach ($User in $Users) {
-	$PreUserName=(($User.lastname).substring(0,2)+($User.firstname).substring(0,2)).ToLower() -replace "�","a" -replace "�","a" -replace "�","o"
+	$PreUserName=(($User.lastname).substring(0,2)+($User.firstname).substring(0,2)).ToLower() -replace "ä","a" -replace "å","a" -replace "ö","o"
 	$Progress = 1
 	$inc = 1
 
 	While ($Progress -eq 1) {
 		$Match = Get-ADUser -Filter {sAMAccountName -eq $PreUserName}
 	If ($Match -ne $Null) {
-		$PreUserName = (($User.lastname).substring(0,2+$inc++)+($User.firstname).substring(0,2)).ToLower() -replace "�","a" -replace "�","a" -replace "�","o"
+		$PreUserName = (($User.lastname).substring(0,2+$inc++)+($User.firstname).substring(0,2)).ToLower() -replace "ä","a" -replace "å","a" -replace "ö","o"
 	}
 		Else {
 			$UserName = $PreUserName
 			$Progress = 2}
 
-#Creates attrubutes from given data in DB and the funcitons above
+#Skapar attribut från databas samt funktionerna ovan
 
 	$sAMAccountName = ($UserName + $UserSuf).ToLower() -replace " ",""
 	$UPN = $sAMAccountName + #'@companyname.domain'
@@ -46,7 +46,7 @@ Foreach ($User in $Users) {
 	$OU = #"OU=container,DC=<somecompany>,DC=com"
 
 
-#Creates users from input above
+#Skapar användare från indatan ovan
 	New-ADUser -Name $Name `
 		-SamAccountName $sAMAccountName `
 	  -GivenName $User.firstname `
@@ -64,7 +64,7 @@ Foreach ($User in $Users) {
 		-employeeNumber $PNR `
 		-OtherAttributes @{'uid'=$UID} `
 
-#Add users to a give defined group
+#Lägger till gruppmedlemskap
 		Add-ADGroupMember $OptionalGroup -Members $sAMAccountName
 
 }
